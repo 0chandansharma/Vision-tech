@@ -1,0 +1,64 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: vision_tech_postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=visiontech
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - vision_tech_network
+
+  mongodb:
+    image: mongo:5
+    container_name: vision_tech_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - vision_tech_network
+
+  backend:
+    build: .
+    container_name: vision_tech_backend
+    depends_on:
+      - postgres
+      - mongodb
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=visiontech
+      - MONGODB_URL=mongodb://mongodb:27017/
+      - MONGODB_DB=visiontech
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+    networks:
+      - vision_tech_network
+
+  frontend:
+    build: ./frontend
+    container_name: vision_tech_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - vision_tech_network
+
+networks:
+  vision_tech_network:
+
+volumes:
+  postgres_data:
+  mongodb_data:
