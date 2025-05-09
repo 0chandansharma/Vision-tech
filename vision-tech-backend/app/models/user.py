@@ -17,5 +17,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
     
-    # Define role relationship but use string reference to avoid circular import
+    # Relationships
     role = relationship("Role")
+    projects = relationship("Project", back_populates="creator")
+    videos = relationship("Video", back_populates="uploader")

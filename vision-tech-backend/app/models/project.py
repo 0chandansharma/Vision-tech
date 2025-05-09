@@ -14,11 +14,12 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_archived = Column(Boolean, default=False)
-    metadata = Column(JSON, nullable=True)
+    project_metadata = Column(JSON, nullable=True)  # Renamed from 'metadata' which is a reserved keyword
     
     # Relationships - use string references to avoid circular imports
     creator = relationship("User", back_populates="projects")
     videos = relationship("Video", back_populates="project")
+    members = relationship("ProjectMember", back_populates="project")
 
 class ProjectMember(Base):
     __tablename__ = "project_member"
@@ -29,5 +30,5 @@ class ProjectMember(Base):
     added_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    project = relationship("Project")
+    project = relationship("Project", back_populates="members")
     user = relationship("User")

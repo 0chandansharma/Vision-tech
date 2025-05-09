@@ -10,6 +10,30 @@ const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  // Parse validation errors or convert to string
+  const formatValidationError = (error: any): string => {
+    if (typeof error === 'string') {
+      try {
+        // Try to parse the error as JSON
+        const parsedError = JSON.parse(error);
+        if (Array.isArray(parsedError)) {
+          // Format validation errors
+          return parsedError.map(err => {
+            const field = err.loc?.slice(-1)[0] || 'field';
+            return `${field.charAt(0).toUpperCase() + field.slice(1)}: ${err.msg}`;
+          }).join(', ');
+        }
+      } catch {
+        // Not JSON, return as is
+        return error;
+      }
+    }
+
+    // For non-string errors
+    return typeof error === 'object' ? JSON.stringify(error) : String(error);
+  };
+
+  const errorMessage = error ? formatValidationError(error) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +57,7 @@ const LoginForm: React.FC = () => {
         </Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
 
       <Box component="form" onSubmit={handleSubmit}>
         <TextField

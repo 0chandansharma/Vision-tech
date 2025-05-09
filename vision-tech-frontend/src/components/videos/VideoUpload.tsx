@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../store';
 import { uploadVideo } from '../../store/videos/videosSlice';
@@ -11,12 +11,13 @@ import {
   LinearProgress,
   Typography,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   CheckCircle as SuccessIcon,
-  Error as ErrorIcon,
   Close as CloseIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 
 interface VideoUploadProps {
@@ -24,17 +25,75 @@ interface VideoUploadProps {
   onSuccess?: () => void;
 }
 
+// Type for upload errors
+interface UploadError {
+  message: string;
+  details?: string;
+  code?: string;
+}
+
 const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UploadError | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Use refs to manage intervals
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup interval on component unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setError(null);
+      setSuccess(false);
+
+      // Validate file size
+      const maxSizeMB = 500; // 500MB limit
+      if (selectedFile.size > maxSizeMB * 1024 * 1024) {
+        setError({
+          message: `File too large`,
+          details: `Maximum file size is ${maxSizeMB}MB. Your file is ${(selectedFile.size / (1024 * 1024)).toFixed(2)}MB.`
+        });
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFile = e.dataTransfer.files[0];
+
+      // Check file extension
+      const validExtensions = ['mp4', 'avi', 'mov', 'mkv'];
+      const fileExt = droppedFile.name.split('.').pop()?.toLowerCase();
+      if (!fileExt || !validExtensions.includes(fileExt)) {
+        setError({
+          message: `Invalid file type`,
+          details: `Supported formats: ${validExtensions.join(', ')}`
+        });
+        return;
+      }
+
+      setFile(droppedFile);
       setError(null);
       setSuccess(false);
     }
@@ -42,15 +101,18 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
 
   const handleUpload = async () => {
     if (!file) {
-      setError('Please select a file');
+      setError({ message: 'Please select a file' });
       return;
     }
 
-    // Check file extension
+    // Check file extension again
     const validExtensions = ['mp4', 'avi', 'mov', 'mkv'];
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     if (!fileExt || !validExtensions.includes(fileExt)) {
-      setError(`Invalid file type. Supported formats: ${validExtensions.join(', ')}`);
+      setError({
+        message: `Invalid file type`,
+        details: `Supported formats: ${validExtensions.join(', ')}`
+      });
       return;
     }
 
@@ -59,28 +121,51 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
     setError(null);
 
     try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
+      // Clear any existing interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
+      // Start a new interval for progress simulation
+      progressIntervalRef.current = setInterval(() => {
         setProgress((prev) => {
-          const newProgress = prev + 5;
+          // Simulate a realistic progress curve that slows down as it approaches 95%
+          const remaining = 95 - prev;
+          const increment = Math.max(0.5, remaining * 0.1);
+          const newProgress = prev + increment;
+
           if (newProgress >= 95) {
-            clearInterval(progressInterval);
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
+            }
             return 95; // Pause at 95% until upload is confirmed
           }
-          return newProgress;
+          return Math.min(95, newProgress);
         });
-      }, 500);
+      }, 300);
 
       // Dispatch upload action
       const resultAction = await dispatch(
         uploadVideo({
           projectId,
           file,
-          onProgress: (progress) => setProgress(progress),
+          onProgress: (progress) => {
+            // For real progress updates from the API
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
+            }
+            setProgress(progress);
+          },
         })
       );
 
-      clearInterval(progressInterval);
+      // Clean up interval if it's still running
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
 
       if (uploadVideo.fulfilled.match(resultAction)) {
         setProgress(100);
@@ -89,13 +174,42 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
         if (onSuccess) {
           onSuccess();
         }
-      } else {
-        throw new Error('Upload failed');
+      } else if (uploadVideo.rejected.match(resultAction)) {
+        // Handle rejected action with payload
+        const payload = resultAction.payload;
+        if (payload && typeof payload === 'object') {
+          setError({
+            message: 'Upload failed',
+            details: payload.toString()
+          });
+        } else {
+          throw new Error(resultAction.error.message || 'Upload failed');
+        }
       }
-    } catch (err: any) {
-      setError(err.message || 'Upload failed');
+    } catch (err: unknown) {
+      // Type guard for Error objects
+      if (err instanceof Error) {
+        setError({
+          message: 'Upload failed',
+          details: err.message
+        });
+      } else {
+        setError({
+          message: 'Upload failed',
+          details: 'An unknown error occurred'
+        });
+      }
+
+      // Ensure progress is reset
+      setProgress(0);
     } finally {
       setUploading(false);
+
+      // Final cleanup of any interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
     }
   };
 
@@ -104,6 +218,12 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
     setProgress(0);
     setError(null);
     setSuccess(false);
+
+    // Clear any running interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
   };
 
   return (
@@ -118,7 +238,23 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
           )}
         </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={
+              error.details ? (
+                <Tooltip title={error.details}>
+                  <IconButton size="small" color="inherit">
+                    <InfoIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : undefined
+            }
+          >
+            {error.message}
+          </Alert>
+        )}
 
         {success ? (
           <Alert severity="success" sx={{ mb: 2 }} icon={<SuccessIcon />}>
@@ -140,6 +276,8 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
                   },
                 }}
                 onClick={() => document.getElementById('video-upload')?.click()}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               >
                 <input
                   type="file"
@@ -158,9 +296,9 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
 
             {file && !uploading && (
               <Box sx={{ mt: 2 }}>
-                <Typography>{file.name}</Typography>
+                <Typography variant="subtitle2">{file.name}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {(file.size / (1024 * 1024)).toFixed(2)} MB
+                  Size: {(file.size / (1024 * 1024)).toFixed(2)} MB
                 </Typography>
               </Box>
             )}
@@ -176,7 +314,7 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
                   sx={{ height: 8, borderRadius: 1, mb: 1 }}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  {progress}% complete
+                  {Math.round(progress)}% complete
                 </Typography>
               </Box>
             )}
@@ -190,6 +328,7 @@ const VideoUpload: React.FC<VideoUploadProps> = ({ projectId, onSuccess }) => {
                   variant="contained"
                   onClick={handleUpload}
                   startIcon={<UploadIcon />}
+                  disabled={!!error}
                 >
                   Upload
                 </Button>

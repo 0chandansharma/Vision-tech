@@ -3,12 +3,14 @@ fastapi>=0.95.0
 pydantic>=1.10.7
 uvicorn>=0.21.1
 sqlalchemy>=2.0.9
-pymongo>=4.3.3
+psycopg2-binary>=2.9.6  # PostgreSQL driver
+pymongo>=4.3.3  # MongoDB driver
 python-jose>=3.3.0
 passlib>=1.7.4
 python-multipart>=0.0.6
 email-validator>=2.0.0
 bcrypt>=4.0.1
+alembic>=1.10.4  # Database migrations
 
 # Computer vision dependencies
 opencv-python>=4.7.0

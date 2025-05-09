@@ -1,7 +1,7 @@
 # app/api/users.py
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_current_admin_user
@@ -220,7 +220,7 @@ def delete_user(
     db: Session = Depends(get_db),
     user_id: int,
     current_user: User = Depends(get_current_admin_user),
-) -> Any:
+) -> Response:
     """
     Delete a user. Only admins can delete users.
     """
@@ -241,4 +241,4 @@ def delete_user(
     db.delete(user)
     db.commit()
     
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

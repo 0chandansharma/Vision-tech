@@ -19,6 +19,7 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  SelectChangeEvent,
 } from '@mui/material';
 import { PlayArrow as StartIcon } from '@mui/icons-material';
 
@@ -55,8 +56,8 @@ const DetectionConfiguration: React.FC<DetectionConfigurationProps> = ({
     }
   }, [selectedModel, availableModels]);
   
-  const handleModelChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setSelectedModel(event.target.value as string);
+  const handleModelChange = (event: SelectChangeEvent<string>) => {
+    setSelectedModel(event.target.value);
   };
   
   const handleConfidenceChange = (_event: Event, newValue: number | number[]) => {

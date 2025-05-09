@@ -23,5 +23,5 @@ class Video(Base):
     
     # Relationships
     project = relationship("Project", back_populates="videos")
-    uploader = relationship("User")
+    uploader = relationship("User", back_populates="videos")
     detection_jobs = relationship("DetectionJob", back_populates="video")

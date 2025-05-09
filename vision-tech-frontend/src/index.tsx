@@ -1,10 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { Provider } from 'react-redux';
 import App from './App';
 import { store } from './store';
+import { fetchCurrentUser } from './store/auth/authSlice';
 import './styles/index.css';
+
+// Try to load the current user on application startup if a token exists
+const token = localStorage.getItem('vision_tech_token');
+if (token) {
+  store.dispatch(fetchCurrentUser());
+}
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -12,10 +17,6 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <Provider store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </Provider>
+    <App />
   </React.StrictMode>
 );

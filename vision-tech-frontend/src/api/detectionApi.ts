@@ -89,6 +89,11 @@ const detectionApi = {
     return response.data;
   },
   
+  cancelDetectionJob: async (jobId: number): Promise<DetectionJob> => {
+    const response = await axiosInstance.post(`/detection/jobs/${jobId}/cancel`);
+    return response.data;
+  },
+
   testYolo: async (
     file: File,
     model: string = 'yolov8n',
@@ -96,7 +101,7 @@ const detectionApi = {
   ): Promise<{ status: string; model: string; detections: any[]; count: number }> => {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const response = await axiosInstance.post(
       `/detection/test-yolo?model=${model}&conf=${conf}`,
       formData,
@@ -106,7 +111,7 @@ const detectionApi = {
         },
       }
     );
-    
+
     return response.data;
   }
 };

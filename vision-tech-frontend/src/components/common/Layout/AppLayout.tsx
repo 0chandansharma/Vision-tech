@@ -1,11 +1,22 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { ReactNode } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Box, Container, CssBaseline } from '@mui/material';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
-const AppLayout: React.FC = () => {
+interface AppLayoutProps {
+  children?: ReactNode;
+}
+
+const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const location = useLocation();
+
+  // Don't show layout for login and other public pages
+  const isPublicRoute = ['/login', '/forgot-password'].includes(location.pathname);
+  if (isPublicRoute) {
+    return <>{children || <Outlet />}</>;
+  }
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -26,7 +37,7 @@ const AppLayout: React.FC = () => {
         }}
       >
         <Container maxWidth="xl" sx={{ py: 4 }}>
-          <Outlet />
+          {children || <Outlet />}
         </Container>
       </Box>
     </Box>

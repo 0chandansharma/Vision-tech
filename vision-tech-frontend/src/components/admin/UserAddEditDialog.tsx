@@ -20,12 +20,14 @@ import {
   Grid,
   Alert,
   CircularProgress,
+  SelectChangeEvent
 } from '@mui/material';
+import { User, UserCreate, UserUpdate } from '../../types/user.types';
 
 interface UserAddEditDialogProps {
   open: boolean;
   onClose: () => void;
-  user?: any; // User object for editing, undefined for adding
+  user?: User | null; // User object for editing, undefined for adding
 }
 
 const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
@@ -36,7 +38,7 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const { roles, isLoading, error } = useSelector((state: RootState) => state.admin);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<UserCreate | UserUpdate>({
     username: '',
     email: '',
     password: '',
@@ -81,11 +83,25 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
     }
   }, [user]);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  // Handle input changes for text fields
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name?: string; value: unknown } }
+  ) => {
     const { name, value } = e.target;
+    if (!name) return;
+
     setFormData({
       ...formData,
-      [name!]: value,
+      [name]: value,
+    });
+  };
+
+  // Handle select changes specifically for MUI Select
+  const handleSelectChange = (event: SelectChangeEvent<number>) => {
+    const { name, value } = event.target;
+    setFormData({
+      ...formData,
+      [name]: Number(value),
     });
   };
   
@@ -97,32 +113,41 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
   };
   
   const handleSubmit = async () => {
-    // Validate required fields
-    if (!formData.username || !formData.email || (!user && !formData.password) || 
-        !formData.first_name || !formData.last_name || !formData.role_id) {
-      // Show validation error
-      return;
+    // Different validation for create vs update
+    if (user) {
+      // Update validation - email is required
+      if (!formData.email || !formData.first_name || !formData.last_name || !formData.role_id) {
+        // Show validation error
+        return;
+      }
+    } else {
+      // Create validation - all fields are required
+      const createData = formData as UserCreate;
+      if (!createData.username || !createData.email || !createData.password ||
+          !createData.first_name || !createData.last_name || !createData.role_id) {
+        // Show validation error
+        return;
+      }
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       if (user) {
         // Update existing user
-        const updateData = { ...formData };
+        const updateData = { ...formData } as UserUpdate;
         // Only include password if it was changed
-        const dataToUpdate = { ...updateData };
-        if (!dataToUpdate.password) {
-          const { password, ...rest } = dataToUpdate;
-          await dispatch(updateUser({ id: user.id, data: rest }));
+        if (updateData.password === '') {
+          const { password, ...dataWithoutPassword } = updateData;
+          await dispatch(updateUser({ id: user.id, data: dataWithoutPassword }));
         } else {
-          await dispatch(updateUser({ id: user.id, data: dataToUpdate }));
+          await dispatch(updateUser({ id: user.id, data: updateData }));
         }
       } else {
         // Create new user
-        await dispatch(createUser(formData));
+        await dispatch(createUser(formData as UserCreate));
       }
-      
+
       onClose();
     } catch (err) {
       console.error('Failed to save user:', err);
@@ -146,10 +171,11 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
             <TextField
               name="username"
               label="Username"
-              value={formData.username}
+              value={formData.username || ''}
               onChange={handleChange}
               fullWidth
               required
+              disabled={!!user} // Username cannot be changed for existing users
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -157,7 +183,7 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
               name="email"
               label="Email"
               type="email"
-              value={formData.email}
+              value={formData.email || ''}
               onChange={handleChange}
               fullWidth
               required
@@ -168,7 +194,7 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
               name="password"
               label={user ? "New Password (leave blank to keep current)" : "Password"}
               type="password"
-              value={formData.password}
+              value={formData.password || ''}
               onChange={handleChange}
               fullWidth
               required={!user}
@@ -178,7 +204,7 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
             <TextField
               name="first_name"
               label="First Name"
-              value={formData.first_name}
+              value={formData.first_name || ''}
               onChange={handleChange}
               fullWidth
               required
@@ -188,7 +214,7 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
             <TextField
               name="last_name"
               label="Last Name"
-              value={formData.last_name}
+              value={formData.last_name || ''}
               onChange={handleChange}
               fullWidth
               required
@@ -203,15 +229,10 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
                 name="role_id"
                 value={formData.role_id || 0}
                 label="Role"
-                onChange={(event) => {
-                  setFormData({
-                    ...formData,
-                    role_id: Number(event.target.value)
-                  });
-                }}
+                onChange={handleSelectChange}
               >
                 <MenuItem value={0} disabled>Select a role</MenuItem>
-                {roles.map((role) => (
+                {roles.map((role: { id: number; name: string }) => (
                   <MenuItem key={role.id} value={role.id}>
                     {role.name}
                   </MenuItem>
@@ -223,7 +244,7 @@ const UserAddEditDialog: React.FC<UserAddEditDialogProps> = ({
             <FormControlLabel
               control={
                 <Switch
-                  checked={formData.is_active}
+                  checked={!!formData.is_active}
                   onChange={handleSwitchChange}
                   name="is_active"
                   color="primary"

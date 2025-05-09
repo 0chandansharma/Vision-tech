@@ -1,7 +1,7 @@
 # app/api/projects.py
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
@@ -193,7 +193,7 @@ def delete_project(
     db: Session = Depends(get_db),
     project_id: int,
     current_user: User = Depends(get_current_user),
-) -> Any:
+) -> Response:
     """
     Delete a project.
     """
@@ -218,7 +218,7 @@ def delete_project(
     db.delete(project)
     db.commit()
     
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{project_id}/members", response_model=List[ProjectMemberSchema])
@@ -329,7 +329,7 @@ def remove_project_member(
     project_id: int,
     user_id: int,
     current_user: User = Depends(get_current_user),
-) -> Any:
+) -> Response:
     """
     Remove a member from a project.
     """
@@ -366,4 +366,4 @@ def remove_project_member(
     db.delete(member)
     db.commit()
     
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

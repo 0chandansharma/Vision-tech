@@ -4,6 +4,7 @@ import projectsReducer from './projects/projectsSlice';
 import videosReducer from './videos/videosSlice';
 import detectionReducer from './detection/detectionSlice';
 import uiReducer from './ui/uiSlice';
+import adminReducer from './admin/adminSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     videos: videosReducer,
     detection: detectionReducer,
     ui: uiReducer,
+    admin: adminReducer,
   },
 });
 

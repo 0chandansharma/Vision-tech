@@ -16,7 +16,11 @@ const ProjectList: React.FC = () => {
   }, [dispatch]);
 
   if (isLoading && projects.length === 0) {
-    return <Typography>Loading projects...</Typography>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }}>
+        <Typography variant="h6">Loading projects...</Typography>
+      </Box>
+    );
   }
 
   return (
@@ -56,7 +60,7 @@ const ProjectList: React.FC = () => {
                     Created: {formatDate(project.created_at)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Created by: {project.creator.first_name} {project.creator.last_name}
+                    Created by: {project.creator ? `${project.creator.first_name || ''} ${project.creator.last_name || ''}`.trim() : 'Unknown'}
                   </Typography>
                   <Box sx={{ mt: 2 }}>
                     <Chip 

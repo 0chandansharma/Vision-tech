@@ -5,17 +5,25 @@ import { Videocam, Warning, CheckCircle, HourglassEmpty } from '@mui/icons-mater
 import { formatDuration, formatDate } from '../../utils/date.utils';
 
 interface VideoListProps {
-  videos: VideoWithDetails[];
-  isLoading: boolean;
-  onSelectVideo: (videoId: number) => void;
-  selectedVideoId: number | null;
+  videos?: VideoWithDetails[];
+  isLoading?: boolean;
+  onSelectVideo?: (videoId: number) => void;
+  selectedVideoId?: number | null;
+  projectId?: number;
+  limit?: number;
+  showViewAll?: boolean;
+  onViewAll?: () => void;
 }
 
 const VideoList: React.FC<VideoListProps> = ({
-  videos,
-  isLoading,
-  onSelectVideo,
-  selectedVideoId,
+  videos = [],
+  isLoading = false,
+  onSelectVideo = () => {},
+  selectedVideoId = null,
+  projectId,
+  limit,
+  showViewAll = false,
+  onViewAll,
 }) => {
   if (isLoading && videos.length === 0) {
     return (

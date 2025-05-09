@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.models.project import Project, ProjectMember
 from app.models.user import User
 from app.models.video import Video
-from app.models.detection_job import DetectionJob
+from app.models.detection import DetectionJob  # Updated import
 from app.models.usage_log import UsageLog
 from app.schemas.detection import (
     DetectionJob as DetectionJobSchema,

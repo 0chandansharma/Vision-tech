@@ -55,6 +55,17 @@ export const createDetectionJob = createAsyncThunk(
   }
 );
 
+export const fetchDetectionJobs = createAsyncThunk(
+  'detection/fetchDetectionJobs',
+  async (videoId: number, { rejectWithValue }) => {
+    try {
+      return await detectionApi.getDetectionJobsForVideo(videoId);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Failed to fetch detection jobs');
+    }
+  }
+);
+
 export const fetchDetectionJobsForVideo = createAsyncThunk(
   'detection/fetchDetectionJobsForVideo',
   async (videoId: number, { rejectWithValue }) => {
@@ -141,6 +152,17 @@ export const exportDetectionResults = createAsyncThunk(
       return await detectionApi.exportDetectionResults(jobId, format);
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Failed to export detection results');
+    }
+  }
+);
+
+export const cancelDetectionJob = createAsyncThunk(
+  'detection/cancelDetectionJob',
+  async (jobId: number, { rejectWithValue }) => {
+    try {
+      return await detectionApi.cancelDetectionJob(jobId);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Failed to cancel detection job');
     }
   }
 );

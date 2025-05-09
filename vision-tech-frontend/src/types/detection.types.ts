@@ -44,6 +44,12 @@ export interface Detection {
     completed_at?: string;
     error_message?: string;
   }
+
+  export interface DetectionJobCreate {
+    video_id: number;
+    model_name: string;
+    parameters?: Record<string, any>;
+  }
   
   export interface DetectionModel {
     id: string;

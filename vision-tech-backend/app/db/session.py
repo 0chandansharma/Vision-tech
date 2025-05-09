@@ -1,11 +1,16 @@
-# app/db/session.py (temporary fix for debugging)
+# app/db/session.py
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import logging
 
-# Hardcoded URI for debugging
-DATABASE_URI = "postgresql://postgres:postgres@localhost/visiontech"
-print(f"Using database URI: {DATABASE_URI}")
+from app.core.config import settings
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Get the database URI from settings
+DATABASE_URI = settings.SQLALCHEMY_DATABASE_URI
+logger.info(f"Using database URI: {DATABASE_URI}")
 
 # Create the SQLAlchemy engine
 engine = create_engine(
@@ -16,9 +21,6 @@ engine = create_engine(
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create declarative base
-Base = declarative_base()
 
 # Define function to get database session
 def get_db():
